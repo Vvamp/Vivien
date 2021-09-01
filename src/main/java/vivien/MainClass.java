@@ -52,14 +52,16 @@ class MainClass {
         RestClient rc = client.getRestClient();
         long applicationid = rc.getApplicationId().block();
         for (Command c : commandList) {
+            // Create command
             ApplicationCommandRequest currentCommand = ApplicationCommandRequest.builder().name(c.getName())
                     .description(c.getDescription()).build();
-            System.out.println(c.getName());
-            rc.getApplicationService()
-                    .createGuildApplicationCommand(applicationid, Snowflake.asLong("843501487036563487"),
-                            currentCommand)
-                    .doOnError(e -> System.out.println("Unable to create guild command:" + e.getMessage()))
+
+            // Register command
+            rc.getApplicationService().createGlobalApplicationCommand(applicationid, currentCommand)
+                    .doOnError(e -> System.out.println("Unable to create global command:" + e.getMessage()))
                     .onErrorResume(e -> Mono.empty()).block();
+
+            // Make it accessible
             commands.put(c.getName(), c);
 
         }

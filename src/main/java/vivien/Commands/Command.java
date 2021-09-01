@@ -16,11 +16,17 @@ public abstract class Command implements Function<MessageCreateEvent, Mono<Void>
     }
 
     public Command() {
-        System.out.println("> Executing Command: " + getName());
         return;
     }
 
+    public Mono<Void> apply(MessageCreateEvent event) {
+        System.out.println("> Executing Command: " + getName());
+
+        return Mono.empty();
+    }
+
     public void apply(SlashCommandEvent event) {
+        System.out.println("> Executing Slash Command: " + getName());
         return;
     }
 }
