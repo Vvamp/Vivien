@@ -1,0 +1,17 @@
+# Ignore java class files
+*.class
+
+# Ignore gradle
+.gradle
+/build/
+
+# Ignore package files
+*.jar
+*.war
+*.ear
+
+# Ignore .env files
+*.env 
+
+# Don't ignore gradle-warpper
+!gradle-wrapper.jar

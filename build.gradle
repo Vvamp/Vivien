@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+apply plugin: 'application'
+mainClassName = "vivien.MainClass"
+
+repositories{
+    mavenCentral()
+}
+
+dependencies{
+    implementation "com.discord4j:discord4j-core:3.1.7"
+    implementation 'io.github.cdimascio:dotenv-java:2.2.0'
+
+}
