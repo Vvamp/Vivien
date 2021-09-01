@@ -18,8 +18,14 @@ public class ReactionManager {
                                                                                                             // bot-development
 
     };
+    private GatewayDiscordClient client;
 
     public ReactionManager(GatewayDiscordClient client) {
+        this.client = client;
+        initialize();
+    }
+
+    private void initialize() {
         // Initialize reaction upon load
         for (ReactionMessage reactionMessage : messages) {
             String channelid = reactionMessage.getChannelId();
