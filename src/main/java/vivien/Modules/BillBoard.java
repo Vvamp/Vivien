@@ -5,6 +5,7 @@ import java.util.Random;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
+import discord4j.discordjson.json.ActivityUpdateRequest;
 
 public class BillBoard implements Runnable {
 
@@ -14,14 +15,41 @@ public class BillBoard implements Runnable {
         this.client = client;
     }
 
-    private String[] texts = { "In-Dev", "Made By Vvamp" };
-
     @Override
     public void run() {
         Random rnd = new Random();
-        int choice = rnd.nextInt(texts.length) + 0;
-        System.out.println("> Updating Status to " + texts[choice]);
-        client.updatePresence(Presence.online(Activity.playing(texts[choice]))).block();
+
+        // Choose which type of text to show(watching/playing/listening/competing)
+        int text_type = rnd.nextInt(4);
+        TextType chosenType = TextType.values()[text_type];
+
+        String[] texts = BillboardTexts.getTextArray(chosenType);
+
+        // Choose which specific text we'll show
+        int choice = rnd.nextInt(texts.length);
+
+        // Log it
+        System.out.println("> Updating Status to " + texts[choice] + "(" + chosenType.toString() + ")");
+
+        ActivityUpdateRequest aur;
+        // Figure out which activity we should be choosing
+        switch (chosenType) {
+            case Playing:
+                aur = Activity.playing(texts[choice]);
+                break;
+            case Watching:
+                aur = Activity.watching(texts[choice]);
+                break;
+            case Listening:
+                aur = Activity.listening(texts[choice]);
+                break;
+            case Competing:
+                aur = Activity.competing(texts[choice]);
+                break;
+            default:
+                aur = Activity.playing(texts[choice]);
+        }
+        client.updatePresence(Presence.doNotDisturb(aur)).block();
 
     }
 
