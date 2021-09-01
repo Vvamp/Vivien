@@ -8,14 +8,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.reactivestreams.Publisher;
 
-import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.entity.Message;
+import discord4j.core.event.domain.message.ReactionAddEvent;
+import discord4j.core.event.domain.message.ReactionRemoveEvent;
 import discord4j.core.object.entity.User;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import discord4j.rest.RestClient;
@@ -24,6 +24,7 @@ import reactor.core.publisher.Mono;
 import vivien.Commands.AboutCommand;
 import vivien.Commands.Command;
 import vivien.Modules.BillBoard;
+import vivien.Modules.ReactionManager;
 
 class MainClass {
     private static final Map<String, Command> commands = new HashMap<>();
@@ -32,10 +33,15 @@ class MainClass {
     private static final Command[] commandList = { new AboutCommand() }; // List of command classes. Add all command
                                                                          // classes here, the rest gets updated
                                                                          // automatically
+    private static ReactionManager reactionManager;
 
     public static void main(final String[] args) {
+        // Setup
         Dotenv dotenv = Dotenv.load();
+
+        // Login
         GatewayDiscordClient client = DiscordClientBuilder.create(dotenv.get("CLIENT_TOKEN")).build().login().block();
+        reactionManager = new ReactionManager(client);
 
         // Handle Login
         client.getEventDispatcher().on(ReadyEvent.class).subscribe(event -> {
@@ -68,6 +74,19 @@ class MainClass {
 
         // Handle commands
         client.on(new ReactiveEventAdapter() {
+
+            public Publisher<?> onReactionAdd(ReactionAddEvent event) {
+                reactionManager.processReactionAdd(event);
+                return Mono.empty();
+            };
+
+            public Publisher<?> onReactionRemove(ReactionRemoveEvent event) {
+                reactionManager.processReactionRemove(event);
+                return Mono.empty();
+            };
+
+            // Run commands when message is sent
+            @Override
             public Publisher<?> onMessageCreate(MessageCreateEvent event) {
                 if (event.getMessage().getContent().startsWith(String.valueOf(command_prefix))) {
                     String word = event.getMessage().getContent().split(" ")[0]; // Remove any trailing params
@@ -77,11 +96,12 @@ class MainClass {
                 return Mono.empty();
             };
 
+            // Run commands on slash
             @Override
             public Publisher<?> onSlashCommand(SlashCommandEvent event) {
                 commands.get(event.getCommandName()).apply(event); // Apply command by name
                 return Mono.empty();
-            }
+            };
         }).blockLast();
 
         client.onDisconnect().block();
