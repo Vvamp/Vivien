@@ -15,3 +15,5 @@
 
 # Don't ignore gradle-warpper
 !gradle-wrapper.jar
+
+.settings
