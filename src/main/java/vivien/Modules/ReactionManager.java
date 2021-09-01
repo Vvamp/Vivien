@@ -11,11 +11,8 @@ import discord4j.core.object.reaction.ReactionEmoji;
 
 public class ReactionManager {
     private static ReactionMessage[] messages = {
-            new ReactionMessage("844953118567301140", "844939140806344704", "Arthur", "882615511739928617") // Test
-                                                                                                            // message
-                                                                                                            // in
-                                                                                                            // channel
-                                                                                                            // bot-development
+            new ReactionMessage("844989841900437505", "844942837434155018", "Arthurshield", "844941638291030066") // Rule
+            // commoner
 
     };
     private GatewayDiscordClient client;

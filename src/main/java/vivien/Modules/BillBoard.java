@@ -49,7 +49,7 @@ public class BillBoard implements Runnable {
             default:
                 aur = Activity.playing(texts[choice]);
         }
-        client.updatePresence(Presence.doNotDisturb(aur)).block();
+        client.updatePresence(Presence.online(aur)).block();
 
     }
 
