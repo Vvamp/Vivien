@@ -1,6 +1,7 @@
 package vivien;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -16,13 +17,16 @@ import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.event.domain.message.ReactionAddEvent;
 import discord4j.core.event.domain.message.ReactionRemoveEvent;
+import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.User;
+import discord4j.discordjson.json.ApplicationCommandData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import discord4j.rest.RestClient;
 import io.github.cdimascio.dotenv.Dotenv;
 import reactor.core.publisher.Mono;
 import vivien.Commands.AboutCommand;
 import vivien.Commands.Command;
+import vivien.Commands.PurgeCommand;
 import vivien.Modules.BillBoard;
 import vivien.Modules.ReactionManager;
 
@@ -30,9 +34,10 @@ class MainClass {
     private static final Map<String, Command> commands = new HashMap<>();
     private static final char command_prefix = '!';
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private static final Command[] commandList = { new AboutCommand() }; // List of command classes. Add all command
-                                                                         // classes here, the rest gets updated
-                                                                         // automatically
+    private static final Command[] commandList = { new AboutCommand(), new PurgeCommand() }; // List of command classes.
+                                                                                             // Add all command
+    // classes here, the rest gets updated
+    // automatically
     private static ReactionManager reactionManager;
 
     public static void main(final String[] args) {
@@ -57,14 +62,26 @@ class MainClass {
         // to make a slash command
         RestClient rc = client.getRestClient();
         long applicationid = rc.getApplicationId().block();
+
+        // Make sure to clear old commands
+        List<ApplicationCommandData> ar = rc.getApplicationService().getGlobalApplicationCommands(applicationid)
+                .collectList().block();
+        for (ApplicationCommandData applicationCommandData : ar) {
+            System.out.println("Deleting GAD " + applicationCommandData.name() + "...");
+            rc.getApplicationService()
+                    .deleteGlobalApplicationCommand(applicationid, Long.parseLong(applicationCommandData.id())).block();
+        }
+
         for (Command c : commandList) {
+            System.out.print("Attempting to create: " + c.getName() + "...");
+
             // Create command
             ApplicationCommandRequest currentCommand = ApplicationCommandRequest.builder().name(c.getName())
                     .description(c.getDescription()).build();
-
             // Register command
             rc.getApplicationService().createGlobalApplicationCommand(applicationid, currentCommand)
-                    .doOnError(e -> System.out.println("Unable to create global command:" + e.getMessage()))
+                    .doOnSuccess(e -> System.out.println(" ...Success creating command!"))
+                    .doOnError(e -> System.out.println(" ...Unable to create global command:" + e.getMessage()))
                     .onErrorResume(e -> Mono.empty()).block();
 
             // Make it accessible
@@ -99,7 +116,7 @@ class MainClass {
             // Run commands on slash
             @Override
             public Publisher<?> onSlashCommand(SlashCommandEvent event) {
-                commands.get(event.getCommandName()).apply(event); // Apply command by name
+                commands.get(event.getCommandName().stripTrailing()).apply(event); // Apply command by name
                 return Mono.empty();
             };
         }).blockLast();

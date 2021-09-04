@@ -2,10 +2,10 @@ package vivien.Modules;
 
 public class BillboardTexts {
     private static String[] texts_playing = { "with water", "with magic" };
-    private static String[] texts_listening = { "to Sir Lancelot's rambling", "to King Arthur's Request",
+    private static String[] texts_listening = { "Sir Lancelot's rambling", "King Arthur's Request",
             "The Knights of the Round Table" };
     private static String[] texts_watching = { "over the lake ", "over Sir Lancelot", "over Winchester" };
-    private static String[] texts_competing = { "in a Joust", "in a magic duel" };
+    private static String[] texts_competing = { "a Joust", "a magic duel" };
 
     public static String[] getTextArray(TextType choice) {
         switch (choice) {
