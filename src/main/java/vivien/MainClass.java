@@ -12,12 +12,12 @@ import org.reactivestreams.Publisher;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.ReactiveEventAdapter;
+import discord4j.core.event.domain.guild.MemberJoinEvent;
 import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.event.domain.message.ReactionAddEvent;
 import discord4j.core.event.domain.message.ReactionRemoveEvent;
-import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.User;
 import discord4j.discordjson.json.ApplicationCommandData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
@@ -29,6 +29,7 @@ import vivien.Commands.Command;
 import vivien.Commands.PurgeCommand;
 import vivien.Modules.BillBoard;
 import vivien.Modules.ReactionManager;
+import vivien.Modules.RoleManager;
 
 class MainClass {
     private static final Map<String, Command> commands = new HashMap<>();
@@ -39,6 +40,7 @@ class MainClass {
     // classes here, the rest gets updated
     // automatically
     private static ReactionManager reactionManager;
+    private static RoleManager roleManager;
 
     public static void main(final String[] args) {
         // Setup
@@ -47,6 +49,7 @@ class MainClass {
         // Login
         GatewayDiscordClient client = DiscordClientBuilder.create(dotenv.get("CLIENT_TOKEN")).build().login().block();
         reactionManager = new ReactionManager(client);
+        roleManager = new RoleManager();
 
         // Handle Login
         client.getEventDispatcher().on(ReadyEvent.class).subscribe(event -> {
@@ -99,6 +102,12 @@ class MainClass {
 
             public Publisher<?> onReactionRemove(ReactionRemoveEvent event) {
                 reactionManager.processReactionRemove(event);
+                return Mono.empty();
+            };
+
+            public Publisher<?> onMemberJoin(MemberJoinEvent event) {
+                System.out.println("Member has joined server, adding roles...");
+                roleManager.applyDefaultRoles(event.getMember());
                 return Mono.empty();
             };
 
