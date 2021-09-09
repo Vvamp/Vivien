@@ -11,7 +11,8 @@
 *.ear
 
 # Ignore .env files
-*.env 
+*.env.*
+!*.env.example
 
 # Don't ignore gradle-warpper
 !gradle-wrapper.jar
