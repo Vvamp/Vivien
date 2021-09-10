@@ -28,9 +28,7 @@ public abstract class Command implements Function<MessageCreateEvent, Mono<Void>
     public String[] getCommandParams(MessageCreateEvent event) {
         // Check parameters
         String msg_content = event.getMessage().getContent();
-        System.out.println("Checking params for " + msg_content);
         String msg_rest = msg_content.substring(getName().length() + 1);
-        System.out.println("Found rest of " + msg_rest);
         String[] args = msg_rest.split(" ");
         if (args.length == 0) {
             return null;

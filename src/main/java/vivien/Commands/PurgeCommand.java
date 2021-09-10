@@ -1,10 +1,13 @@
 package vivien.Commands;
 
+import java.time.Duration;
+import java.util.List;
+
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.rest.util.ApplicationCommandOptionType;
 import discord4j.rest.util.Permission;
@@ -63,7 +66,8 @@ public class PurgeCommand extends Command {
         }
 
         // Purge
-        if (purge(event.getMessage().getChannel().block(), event.getMessage().getId(), amount) == false) {
+        if (purge((GuildMessageChannel) event.getGuild().block().getChannelById(event.getMessage().getChannelId())
+                .block(), event.getMessage().getId(), amount) == false) {
             event.getMessage().getChannel().block().createMessage(
                     "Sorry, I was unable to assist you with this request. Perhaps you could check my permissions?")
                     .block();
@@ -98,7 +102,10 @@ public class PurgeCommand extends Command {
         }
         // Purge
         Snowflake lastMessageID = event.getInteraction().getChannel().block().getLastMessage().block().getId();
-        if (purge(event.getInteraction().getChannel().block(), lastMessageID, count) == false) {
+        if (purge(
+                (GuildMessageChannel) event.getInteraction().getGuild().block()
+                        .getChannelById(event.getInteraction().getChannelId()).block(),
+                lastMessageID, count) == false) {
             event.getInteraction().getChannel().block().createMessage(
                     "Sorry, I was unable to assist you with this request. Perhaps you could check my permissions?")
                     .block();
@@ -106,23 +113,49 @@ public class PurgeCommand extends Command {
 
     }
 
-    private boolean purge(MessageChannel channel, Snowflake lastMessage) {
+    private boolean purge(GuildMessageChannel channel, Snowflake lastMessage) {
         // purge all messages
         return purge(channel, lastMessage, -1);
     }
 
-    private boolean purge(MessageChannel channel, Snowflake lastMessage, int count) {
-        Flux<Message> messagesToPurge = channel.getMessagesBefore(lastMessage);
+    private boolean purge(GuildMessageChannel channel, Snowflake lastMessage, int count) {
+        Duration weeks = Duration.ofDays(10);
+        Flux<Message> allMessages = channel.getMessagesBefore(lastMessage);
         try {
-            int currentCount = 0;
-            for (Message msg : messagesToPurge.collectList().block()) {
-                System.out.println("> PURGE: Deleting message: " + msg.getContent());
-                msg.delete("Purge").block();
-                currentCount++;
-                if (currentCount >= count && count != -1) {
-                    break;
+            if (count > 0) {
+                Flux<Message> xMessages = allMessages.take(count);
+                Flux<Message> bulkDeleteMessages = xMessages.take(weeks);
+
+                System.out.println("> Purge " + count + " messages... ");
+                channel.bulkDeleteMessages(bulkDeleteMessages)
+                        .doOnError(e -> System.out.println("Failed to delete: " + e.getMessage())).doOnEach(e -> {
+                        }).blockLast();
+
+                for (int i = 0; i < count; i++) {
+                    try {
+                        xMessages.collectList().block().get(i).delete("Purge").block();
+                    } catch (Exception e) {
+                        // When we stumble upon messages that no longer exist, stop purging. These are
+                        // the ones we could bulk delete
+                        break;
+                    }
+                }
+            } else {
+                System.out.println("> Purge all messages...");
+                Flux<Message> bulkDeleteMessages = allMessages.take(weeks);
+                channel.bulkDeleteMessages(bulkDeleteMessages)
+                        .doOnError(e -> System.out.println("Failed to delete: " + e.getMessage())).doOnEach(e -> {
+                        }).blockLast();
+                List<Message> messages = channel.getMessagesBefore(lastMessage).collectList().block();
+                for (Message message : messages) {
+                    try {
+                        message.delete("purge").block();
+                    } catch (Exception e) {
+                        continue;
+                    }
                 }
             }
+
             channel.getMessageById(lastMessage).block().delete("Purge").block();
         } catch (Exception e) {
             if (e.getMessage().contains("Unknown Message")) {
